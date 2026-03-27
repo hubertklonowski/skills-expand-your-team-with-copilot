@@ -470,6 +470,26 @@ document.addEventListener("DOMContentLoaded", () => {
     Object.entries(filteredActivities).forEach(([name, details]) => {
       renderActivityCard(name, details);
     });
+
+    // Highlight activity if specified in URL parameter
+    highlightActivityFromUrl();
+  }
+
+  // Scroll to and highlight an activity card when the page is opened via a shared link
+  function highlightActivityFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const activityName = params.get("activity");
+    if (!activityName) return;
+
+    const cards = activitiesList.querySelectorAll(".activity-card");
+    cards.forEach((card) => {
+      const titleEl = card.querySelector("h4");
+      if (titleEl && titleEl.textContent === activityName) {
+        card.scrollIntoView({ behavior: "smooth", block: "center" });
+        card.classList.add("highlighted");
+        setTimeout(() => card.classList.remove("highlighted"), 3000);
+      }
+    });
   }
 
   // Function to render a single activity card
@@ -568,6 +588,15 @@ document.addEventListener("DOMContentLoaded", () => {
           </div>
         `
         }
+        <div class="share-section">
+          <span class="share-label">Share:</span>
+          <div class="share-buttons">
+            <button class="share-button share-twitter" title="Share on X (Twitter)">𝕏</button>
+            <button class="share-button share-facebook" title="Share on Facebook">f</button>
+            <button class="share-button share-whatsapp" title="Share on WhatsApp">W</button>
+            <button class="share-button share-copy" title="Copy link">🔗</button>
+          </div>
+        </div>
       </div>
     `;
 
@@ -586,6 +615,58 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
     }
+
+    // Add click handlers for share buttons
+    const shareButtons = activityCard.querySelectorAll(".share-button");
+    shareButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const shareUrl = new URL(window.location.href);
+        shareUrl.search = "";
+        shareUrl.searchParams.set("activity", name);
+        const maxDescLength = 100;
+        const shortDesc =
+          details.description.length > maxDescLength
+            ? details.description.slice(0, maxDescLength) + "…"
+            : details.description;
+        const shareText = `Check out "${name}" at Mergington High School! ${shortDesc}`;
+
+        if (button.classList.contains("share-twitter")) {
+          window.open(
+            `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl.toString())}`,
+            "_blank",
+            "noopener,noreferrer"
+          );
+        } else if (button.classList.contains("share-facebook")) {
+          window.open(
+            `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl.toString())}`,
+            "_blank",
+            "noopener,noreferrer"
+          );
+        } else if (button.classList.contains("share-whatsapp")) {
+          window.open(
+            `https://wa.me/?text=${encodeURIComponent(shareText + " " + shareUrl.toString())}`,
+            "_blank",
+            "noopener,noreferrer"
+          );
+        } else if (button.classList.contains("share-copy")) {
+          navigator.clipboard.writeText(shareUrl.toString()).then(() => {
+            const originalText = button.textContent;
+            button.textContent = "✓";
+            button.classList.add("share-copied");
+            setTimeout(() => {
+              button.textContent = originalText;
+              button.classList.remove("share-copied");
+            }, 2000);
+          }).catch(() => {
+            const originalText = button.textContent;
+            button.textContent = "✗";
+            setTimeout(() => {
+              button.textContent = originalText;
+            }, 2000);
+          });
+        }
+      });
+    });
 
     activitiesList.appendChild(activityCard);
   }
